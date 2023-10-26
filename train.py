@@ -23,7 +23,7 @@ CDIR = os.path.dirname(os.path.abspath(__file__))
 # Global variable to store iteration number
 iterationIdx = 0
 
-def getQuantumClassifier(seed):
+def getQuantumClassifier(estimator=None, seed=0):
     algorithm_globals.random_seed = seed
 
     ndim = 9
@@ -37,6 +37,7 @@ def getQuantumClassifier(seed):
 
     # Construct estimator for measurement
     estimator_qnn = EstimatorQNN(
+        estimator=estimator,
         circuit=qc, input_params=feature_map.parameters, weight_params=ansatz.parameters
     )
 
@@ -48,7 +49,7 @@ def getQuantumClassifier(seed):
 
     # Construct neural network classifier
     model = NeuralNetworkClassifier(
-        estimator_qnn, optimizer=COBYLA(maxiter=4), callback=callback_graph
+        estimator_qnn, optimizer=COBYLA(maxiter=1), callback=callback_graph
     )
 
     return model
@@ -97,6 +98,9 @@ def train():
         meanAccuracy = np.mean(accuracies)
         stdAccuracy = np.std(accuracies)
         print("Overall Accuracy (%s): %0.1f %% (std. %0.2f %%)" % (name, meanAccuracy * 100, stdAccuracy * 100))
+
+        if name == 'qml':
+            model.save(os.path.join(CDIR, 'qml.model'))
 
 if __name__ == "__main__":
     train()
