@@ -53,7 +53,7 @@ def test():
             model.neural_network.estimator = estimator
 
             # Perform stratified k-fold cross-validation
-            skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+            skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
             accuracies = []
             for train_index, test_index in skf.split(x, y):
                 _, x_test_fold = x[train_index], x[test_index]

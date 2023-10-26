@@ -11,10 +11,17 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
 
-from qiskit import QuantumCircuit
+from qiskit import Aer, QuantumCircuit, transpile, assemble, Aer, execute
 from qiskit_algorithms.optimizers import COBYLA
 from qiskit.circuit.library import RealAmplitudes, ZZFeatureMap
 from qiskit.utils import algorithm_globals
+from qiskit.circuit.library import ZZFeatureMap, RealAmplitudes
+from qiskit.primitives import Sampler, Estimator
+from qiskit_machine_learning.algorithms import NeuralNetworkClassifier
+from qiskit_machine_learning.neural_networks import SamplerQNN, EstimatorQNN
+from qiskit_machine_learning.utils.loss_functions import L2Loss
+from qiskit.algorithms.optimizers import COBYLA, L_BFGS_B, SPSA
+from qiskit.quantum_info import SparsePauliOp
 
 from qiskit_machine_learning.algorithms.classifiers import NeuralNetworkClassifier
 from qiskit_machine_learning.neural_networks import EstimatorQNN
@@ -28,29 +35,43 @@ iterationIdx = 0
 def getQuantumClassifier(ndim, estimator=None, seed=0):
     algorithm_globals.random_seed = seed
 
-    # Construct QNN
-    qc = QuantumCircuit(ndim)
-    feature_map = ZZFeatureMap(ndim)
-    ansatz = RealAmplitudes(ndim)
-    qc.compose(feature_map, inplace=True)
-    qc.compose(ansatz, inplace=True)
+    sampler = Sampler()
 
-    # Construct estimator for measurement
-    estimator_qnn = EstimatorQNN(
-        estimator=estimator,
-        circuit=qc, input_params=feature_map.parameters, weight_params=ansatz.parameters
+    l2_loss = L2Loss()
+
+    nb_qubits = ndim
+    nb_layers = 2
+
+    ansatz = RealAmplitudes(nb_qubits, reps=nb_layers)
+    feature_map = ZZFeatureMap(nb_qubits)
+    qc = feature_map.compose(ansatz)
+
+    x0 = np.random.random(ansatz.num_parameters)
+
+    objective_func_vals = []
+    def callback_graph(weights, obj_func_eval):
+        logging.info("Loss value: %f" % obj_func_eval)
+        objective_func_vals.append(obj_func_eval)
+
+    def parite(x):
+        return "{:b}".format(x).count("1") % 2
+
+    sampler = Sampler()
+    qnn = SamplerQNN(
+        circuit=qc,
+        sampler=sampler,
+        input_params=feature_map.parameters,
+        weight_params=ansatz.parameters,
+        interpret=parite,
+        output_shape=2
     )
 
-    # Callback to monitor progress during training
-    def callback_graph(weights, loss):
-        global iterationIdx
-        logging.debug('Iteration %d: loss = %f' % (iterationIdx, loss))
-        iterationIdx += 1
-
-    # Construct neural network classifier
     model = NeuralNetworkClassifier(
-        estimator_qnn, optimizer=COBYLA(maxiter=1), callback=callback_graph
-    )
+        qnn,
+        optimizer=COBYLA(maxiter=50),
+        loss=l2_loss,
+        initial_point=x0,
+        callback=callback_graph)
 
     return model
 
@@ -95,7 +116,7 @@ def train():
     for name, model in models.items():
 
         # Perform stratified k-fold cross-validation
-        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+        skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
         accuracies = []
         for train_index, test_index in skf.split(x, y):
             global iterationIdx
