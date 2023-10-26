@@ -1,4 +1,5 @@
 import os
+import logging
 import numpy as np
 import pandas as pd
 import qiskit_ibm_runtime
@@ -24,10 +25,6 @@ ressources = {
         'provider': 'pinq-quebec-hub/iq-quantum/hackathon',
         'backend': 'ibm_quebec'
     },
-    #'ibm_brisbane': {
-    #    'provider': 'ibm-q/open/main',
-    #    'backend': 'ibm_brisbane'
-    #}
 }
 
 IBMProvider.save_account(token="26957a0c470abaf3caf7b7dd37b6f662a1f168095308eae2ff6c490dd51c1ed5fb875bb39d034e6c02a11384d24d4d61fb64d2f5de5179978599957579b2adca", overwrite=True)
@@ -45,7 +42,7 @@ def test():
     x = preprocessData(x, ndim=3)
 
     for ressource in ressources.values():
-        print('Testing on %s' % (ressource['backend']))
+        logging.info('Testing on %s' % (ressource['backend']))
         service = QiskitRuntimeService(instance=ressource['provider'])
         with Session(service=service, backend=ressource['backend']) as session:
             
@@ -69,5 +66,6 @@ def test():
             print("Overall Accuracy (qml, backend=%s): %0.1f %% (std. %0.2f %%)" % (ressource['backend'], meanAccuracy * 100, stdAccuracy * 100))
 
 if __name__ == "__main__":
+    logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
     test()
-    print("All done.")
+    logging.info("All done.")

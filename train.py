@@ -1,4 +1,5 @@
 import os
+import logging
 import numpy as np
 import pandas as pd
 
@@ -43,7 +44,7 @@ def getQuantumClassifier(ndim, estimator=None, seed=0):
     # Callback to monitor progress during training
     def callback_graph(weights, loss):
         global iterationIdx
-        print('Iteration %d: loss = %f' % (iterationIdx, loss))
+        logging.debug('Iteration %d: loss = %f' % (iterationIdx, loss))
         iterationIdx += 1
 
     # Construct neural network classifier
@@ -107,11 +108,12 @@ def train():
         # Print statistics for model
         meanAccuracy = np.mean(accuracies)
         stdAccuracy = np.std(accuracies)
-        print("Overall Accuracy (%s): %0.1f %% (std. %0.2f %%)" % (name, meanAccuracy * 100, stdAccuracy * 100))
+        logging.info("Overall Accuracy (%s): %0.1f %% (std. %0.2f %%)" % (name, meanAccuracy * 100, stdAccuracy * 100))
 
         if name == 'qml':
             model.save(os.path.join(CDIR, 'qml.model'))
 
 if __name__ == "__main__":
+    logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
     train()
-    print("All done.")
+    logging.info("All done.")
