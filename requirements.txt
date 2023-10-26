@@ -1,0 +1,11 @@
+numpy
+scipy
+pandas
+pylatexenc
+matplotlib
+scikit-learn
+qiskit
+qiskit-machine-learning
+qiskit-algorithms
+qiskit-ibm-runtime
+qiskit-ibm-provider
