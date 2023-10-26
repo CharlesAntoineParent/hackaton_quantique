@@ -11,17 +11,24 @@ from qiskit_machine_learning.algorithms.classifiers import NeuralNetworkClassifi
 from sklearn import preprocessing
 from sklearn.model_selection import StratifiedKFold
 
+from train import preprocessData
+
 CDIR = os.path.dirname(os.path.abspath(__file__))
 
 ressources = {
-    'simulateur': {
+    'simulator': {
         'provider': 'ibm-q/open/main',
         'backend': 'ibmq_qasm_simulator'
     },
     'ibm_quebec': {
         'provider': 'pinq-quebec-hub/iq-quantum/hackathon',
         'backend': 'ibm_quebec'
-    }}
+    },
+    #'ibm_brisbane': {
+    #    'provider': 'ibm-q/open/main',
+    #    'backend': 'ibm_brisbane'
+    #}
+}
 
 IBMProvider.save_account(token="26957a0c470abaf3caf7b7dd37b6f662a1f168095308eae2ff6c490dd51c1ed5fb875bb39d034e6c02a11384d24d4d61fb64d2f5de5179978599957579b2adca", overwrite=True)
 
@@ -34,10 +41,8 @@ def test():
     x = data.drop("label", axis=1).values
     y = data["label"].values
 
-    # Feature scaling and normalization of input features
-    scaler = preprocessing.MinMaxScaler()
-    x_scaled = scaler.fit_transform(x)
-    x_normalized = preprocessing.normalize(x_scaled, norm='l2')
+    # Data preprocessing
+    x = preprocessData(x, ndim=3)
 
     for ressource in ressources.values():
         print('Testing on %s' % (ressource['backend']))
@@ -54,7 +59,7 @@ def test():
             skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
             accuracies = []
             for train_index, test_index in skf.split(x, y):
-                _, x_test_fold = x_normalized[train_index], x_normalized[test_index]
+                _, x_test_fold = x[train_index], x[test_index]
                 _, y_test_fold = y[train_index], y[test_index]
                 accuracies.append(model.score(x_test_fold, y_test_fold))
 

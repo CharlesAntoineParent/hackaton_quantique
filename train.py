@@ -8,6 +8,7 @@ from sklearn import preprocessing
 from sklearn.model_selection import StratifiedKFold
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.decomposition import PCA
 
 from qiskit import QuantumCircuit
 from qiskit_algorithms.optimizers import COBYLA
@@ -23,10 +24,8 @@ CDIR = os.path.dirname(os.path.abspath(__file__))
 # Global variable to store iteration number
 iterationIdx = 0
 
-def getQuantumClassifier(estimator=None, seed=0):
+def getQuantumClassifier(ndim, estimator=None, seed=0):
     algorithm_globals.random_seed = seed
-
-    ndim = 9
 
     # Construct QNN
     qc = QuantumCircuit(ndim)
@@ -54,7 +53,7 @@ def getQuantumClassifier(estimator=None, seed=0):
 
     return model
 
-def getModels(seed):
+def getModels(ndim, seed):
     return {
             # Baseline classifiers
             'linear': LogisticRegression(),
@@ -62,8 +61,21 @@ def getModels(seed):
             'decision-tree': DecisionTreeClassifier(),
             'mlp': MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(16, 2), random_state=seed),
             # Quantum classifier
-            'qml': getQuantumClassifier(seed),
+            'qml': getQuantumClassifier(ndim, seed=seed),
             }
+
+def preprocessData(x, ndim=None):
+    if ndim is not None:
+        # Reduce dimensionality
+        pca = PCA(n_components=3)
+        x = pca.fit_transform(x)
+
+    # Feature scaling and normalization of input features
+    scaler = preprocessing.MinMaxScaler()
+    x_scaled = scaler.fit_transform(x)
+    x_normalized = preprocessing.normalize(x_scaled, norm='l2')
+
+    return x_normalized
 
 def train():
     # Set seed for reproducibility
@@ -74,13 +86,12 @@ def train():
     x = data.drop("label", axis=1).values
     y = data["label"].values
 
-    # Feature scaling and normalization of input features
-    scaler = preprocessing.MinMaxScaler()
-    x_scaled = scaler.fit_transform(x)
-    x_normalized = preprocessing.normalize(x_scaled, norm='l2')
-
+    # Data preprocessing
+    x = preprocessData(x, ndim=3)
+    
     # Model selection
-    models = getModels(seed)
+    ndim = x.shape[-1]
+    models = getModels(ndim, seed)
     for name, model in models.items():
 
         # Perform stratified k-fold cross-validation
@@ -89,7 +100,7 @@ def train():
         for train_index, test_index in skf.split(x, y):
             global iterationIdx
             iterationIdx = 0
-            x_train_fold, x_test_fold = x_normalized[train_index], x_normalized[test_index]
+            x_train_fold, x_test_fold = x[train_index], x[test_index]
             y_train_fold, y_test_fold = y[train_index], y[test_index]
             model.fit(x_train_fold, y_train_fold)
             accuracies.append(model.score(x_test_fold, y_test_fold))
