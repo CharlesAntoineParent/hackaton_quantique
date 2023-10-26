@@ -69,13 +69,12 @@ def preprocessData(x, ndim=None):
         # Reduce dimensionality
         pca = PCA(n_components=3)
         x = pca.fit_transform(x)
+    else:
+        scaler = preprocessing.MinMaxScaler()
+        x = scaler.fit_transform(x)
 
-    # Feature scaling and normalization of input features
-    scaler = preprocessing.MinMaxScaler()
-    x_scaled = scaler.fit_transform(x)
-    x_normalized = preprocessing.normalize(x_scaled, norm='l2')
-
-    return x_normalized
+    x = preprocessing.normalize(x, norm='l2')
+    return x
 
 def train():
     # Set seed for reproducibility
