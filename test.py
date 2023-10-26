@@ -63,7 +63,7 @@ def test():
             # Print statistics for model
             meanAccuracy = np.mean(accuracies)
             stdAccuracy = np.std(accuracies)
-            print("Overall Accuracy (qml, backend=%s): %0.1f %% (std. %0.2f %%)" % (ressource['backend'], meanAccuracy * 100, stdAccuracy * 100))
+            logging.info("Overall Accuracy (qml, backend=%s): %0.1f %% (std. %0.2f %%)" % (ressource['backend'], meanAccuracy * 100, stdAccuracy * 100))
 
 if __name__ == "__main__":
     logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
